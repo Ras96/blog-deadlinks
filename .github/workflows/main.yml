@@ -19,9 +19,9 @@ jobs:
   build:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-      env:
-        WORK_ENV: Github Actions
-        NODE_TLS_REJECT_UNAUTHORIZED: 0
+    env:
+      WORK_ENV: Github Actions
+      NODE_TLS_REJECT_UNAUTHORIZED: 0
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
