@@ -2,7 +2,7 @@ const request = require('request');
 const crypto = require('crypto');
 
 const URL = process.env.TRAQ_WEBHOOK_URL;
-const secret = process.env.TRAQ_WEBHOOK_SECRET;
+const secret = process.env.TRAQ_WEBHOOK_SECRET ? '' : 'secret';
 
 const calcHMACSHA1 = (message, secret) => {
   return crypto.createHmac('sha1', secret).update(message).digest('hex');
