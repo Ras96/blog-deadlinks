@@ -12,7 +12,6 @@ on:
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
@@ -30,4 +29,9 @@ jobs:
         run: npm ci
 
       - name: entrypoint
+        env:
+          WORK_ENV: ${{secrets.WORK_ENV}}
+          NODE_TLS_REJECT_UNAUTHORIZED: 0
+          TRAQ_WEBHOOK_URL: ${{secrets.TRAQ_WEBHOOK_URL}}
+          TRAQ_WEBHOOK_SECRET: ${{secrets.TRAQ_WEBHOOK_SECRET}}
         run: node scripts/router.js
