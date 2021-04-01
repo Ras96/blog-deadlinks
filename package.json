@@ -7,7 +7,7 @@
     "node-fetch": "^2.6.1",
     "path": "^0.12.7",
     "puppeteer": "^8.0.0",
-    "request-promise": "^4.2.6",
+    "request": "^2.88.2",
     "sitemapper": "^3.1.12"
   },
   "devDependencies": {

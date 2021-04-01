@@ -7,7 +7,7 @@ const puppeteer = require('puppeteer');
 const Sitemapper = require('sitemapper');
 
 const SITEMAP_PAGES_URL = 'https://trap.jp/sitemap-pages.xml';
-const SITEMAP_POSTS_URL = 'https://trap.jp/sitemap-posts.xml';
+// const SITEMAP_POSTS_URL = 'https://trap.jp/sitemap-posts.xml';
 const INTERVAL_MS = 2000;
 const sitemap = new Sitemapper();
 
@@ -15,7 +15,7 @@ const wait = async (times = 1) => {
   await new Promise((resolve) => {
     setTimeout(resolve, INTERVAL_MS * times);
   });
-}
+};
 
 const fetchLink = async (link) => {
   if (link === '' || !link.startsWith('http')) return null;
@@ -23,7 +23,9 @@ const fetchLink = async (link) => {
     const fetched = await fetch(link, {
       redirect: 'follow',
       follow: 20,
-      headers: {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36'},
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36',
+      },
     });
     if (fetched.status === 200) {
       return null;
@@ -34,9 +36,9 @@ const fetchLink = async (link) => {
         error: `${fetched.status} ${fetched.statusText}`,
       };
     }
-  } catch(err) {
+  } catch (err) {
     console.log('    Error Page Found:', link, err.code);
-    return { url: url, error: `${err.name}: ${err.code}` };
+    return { url: link, error: `${err.name}: ${err.code}` };
   }
 };
 
@@ -98,7 +100,7 @@ exports.findDeadLinks = async () => {
           }
           return elm;
         })
-      )
+      );
       const dl = refetchedLinks.filter((link) => link !== null);
       if (dl.length > 0) {
         deadLinks[key].links = dl;
@@ -108,7 +110,7 @@ exports.findDeadLinks = async () => {
     }
   }
 
-  fs.outputJSON(path.join(__dirname, `..src/deadLinks.json`), deadLinks, { spaces: '\t' });
+  fs.outputJSON(path.join(__dirname, `../src/deadLinks.json`), deadLinks, { spaces: '\t' });
   console.log('Finished checking.');
   return deadLinks;
 };

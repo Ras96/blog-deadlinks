@@ -1,4 +1,4 @@
-const request = require('request-promise');
+const request = require('request');
 const crypto = require('crypto');
 
 const URL = process.env.TRAQ_WEBHOOK_URL;

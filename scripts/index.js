@@ -9,13 +9,13 @@ let deadLinks = {};
 const localDeadLinks = JSON.parse(fs.readFileSync(path.join(__dirname, '../deadLinks.json')));
 
 const main = async () => {
-  await postMessage(`Started checking deadlinks.(${process.env.WORK_ENV})`);
+  postMessage(`Started checking deadlinks.(${process.env.WORK_ENV})`);
   try {
     deadLinks = await findDeadLinks();
   } catch (err) {
     postMessage(`Error Found!\n\n${err}`);
   }
-  await postMessage('Finished checking deadlinks. Check this!\nhttps://ras.trap.show/blog-deadlink/');
+  postMessage('Finished checking deadlinks. Check this!\nhttps://ras.trap.show/blog-deadlink/');
 };
 
 //デプロイ時
