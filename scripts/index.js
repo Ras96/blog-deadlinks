@@ -15,7 +15,7 @@ const main = async () => {
   } catch (err) {
     postMessage(`Error Found!\n\n${err}`);
   }
-  postMessage('Finished checking deadlinks. Check this!\nhttps://ras.trap.show/blog-deadlink/');
+  postMessage(`Finished checking deadlinks. ${Object.keys(deadLinks).length} pages include deadlinks.`);
 };
 
 //デプロイ時
