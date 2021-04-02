@@ -20,6 +20,7 @@ const wait = async (times = 1) => {
 const fetchLink = async (link) => {
   if (link === '' || !link.startsWith('http')) return null;
   try {
+    await wait(Math.random());
     const fetched = await fetch(link, {
       redirect: 'follow',
       follow: 20,
@@ -73,7 +74,7 @@ exports.findDeadLinks = async () => {
       continue;
     }
     await wait();
-    const links = await page.$$eval('a', (list) => list.map((elm) => elm.href));
+    const links = await page.$$eval('article > a', (list) => list.map((elm) => elm.href));
     const authors = await page.$$eval('.author-detail > a', (list) => list.map((elm) => elm.href));
     const fetchedLinks = await Promise.all(links.map((link) => fetchLink(link)));
     const dl = fetchedLinks.filter((link) => link !== null);
