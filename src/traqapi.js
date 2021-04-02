@@ -1,24 +1,40 @@
-const request = require('request');
-const crypto = require('crypto');
+const path = require('path');
+const fs = require('fs-extra');
+const FormData = require('form-data');
+const fetch = require('node-fetch');
+const { Apis } = require('@traptitech/traq');
+const token = process.env.TRAQ_ACCESS_TOKEN;
+const postChannnel = process.env.TRAQ_POST_CHANNEL;
 
-const URL = process.env.TRAQ_WEBHOOK_URL;
-const secret = process.env.TRAQ_WEBHOOK_SECRET ? '' : 'secret';
-
-const calcHMACSHA1 = (message, secret) => {
-  return crypto.createHmac('sha1', secret).update(message).digest('hex');
-};
-
-const options = (message) => ({
-  uri: URL,
-  headers: {
-    'Content-Type': 'text/plain',
-    'X-TRAQ-Signature': calcHMACSHA1(message, secret),
-    'X-TRAQ-Channel-Id': '82b9f8ad-17d9-4597-88f1-0375247a2487',
-  },
-  body: message,
+const api = new Apis({
+  accessToken: token,
 });
 
-exports.postMessage = (message) => {
-  console.log(message);
-  return request.post(options(message));
+const postMessage = (message) => api.postMessage(postChannnel, { content: message, embed: true });
+exports.postMessage = postMessage;
+
+const postFile = async () => {
+  const file = fs.readFileSync(path.join(__dirname, '../deadLinks.json'));
+  const form = new FormData();
+  const url = 'https://q.trap.jp/api/v3/files';
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = ('00' + (now.getMonth() + 1)).slice(-2);
+  const date = ('00' + now.getDate()).slice(-2);
+  form.append('channelId', postChannnel);
+  form.append('file', file, {
+    filename: `deadLinks_${year}${month}${date}.json`,
+    contentType: 'application/json',
+    knownLength: file.length,
+  });
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: form,
+  });
+  const { id } = await response.json();
+  postMessage(`https://q.trap.jp/files/${id}`);
 };
+exports.postFile = postFile;

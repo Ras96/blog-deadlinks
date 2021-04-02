@@ -7,7 +7,7 @@ const puppeteer = require('puppeteer');
 const Sitemapper = require('sitemapper');
 
 const SITEMAP_PAGES_URL = 'https://trap.jp/sitemap-pages.xml';
-// const SITEMAP_POSTS_URL = 'https://trap.jp/sitemap-posts.xml';
+const SITEMAP_POSTS_URL = 'https://trap.jp/sitemap-posts.xml';
 const INTERVAL_MS = 2000;
 const sitemap = new Sitemapper();
 
@@ -45,9 +45,8 @@ const fetchLink = async (link) => {
 exports.findDeadLinks = async () => {
   const deadLinks = {};
   const { sites: pages_urls } = await sitemap.fetch(SITEMAP_PAGES_URL);
-  // const { sites: posts_urls } = await sitemap.fetch(SITEMAP_POSTS_URL);
-  // const urls = pages_urls.concat(posts_urls);
-  const urls = pages_urls;
+  const { sites: posts_urls } = await sitemap.fetch(SITEMAP_POSTS_URL);
+  const urls = pages_urls.concat(posts_urls);
 
   const browser = await puppeteer.launch({
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -67,7 +66,7 @@ exports.findDeadLinks = async () => {
   for (const url of urls) {
     console.log(`Checking ${url}`);
     try {
-      page.goto(url);
+      await page.goto(url);
     } catch (err) {
       console.log(`  Error Page Found: ${url} ${err.name}`);
       deadLinks[url] = { error: err.name };
@@ -110,7 +109,7 @@ exports.findDeadLinks = async () => {
     }
   }
 
-  fs.outputJSON(path.join(__dirname, `../src/deadLinks.json`), deadLinks, { spaces: '\t' });
+  await fs.outputJSON(path.join(__dirname, `../deadLinks.json`), deadLinks, { spaces: '\t' });
   console.log('Finished checking.');
   return deadLinks;
 };

@@ -30,8 +30,8 @@ jobs:
 
       - name: entrypoint
         env:
-          WORK_ENV: ${{secrets.WORK_ENV}}
+          WORK_ENV: Github Actions
+          TRAQ_ACCESS_TOKEN: ${{secrets.TRAQ_ACCESS_TOKEN}}
+          TRAQ_POST_CHANNEL: ${{secrets.TRAQ_POST_CHANNEL}}
           NODE_TLS_REJECT_UNAUTHORIZED: 0
-          TRAQ_WEBHOOK_URL: ${{secrets.TRAQ_WEBHOOK_URL}}
-          TRAQ_WEBHOOK_SECRET: ${{secrets.TRAQ_WEBHOOK_SECRET}}
-        run: node scripts/router.js
+        run: node scripts/index.js

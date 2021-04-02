@@ -1,13 +1,13 @@
 {
   "dependencies": {
-    "crypto": "^1.0.1",
+    "@traptitech/traq": "^3.6.1-6",
     "express": "^4.17.1",
+    "form-data": "^2.3.3",
     "fs-extra": "^9.1.0",
     "node-cron": "^3.0.0",
     "node-fetch": "^2.6.1",
     "path": "^0.12.7",
     "puppeteer": "^8.0.0",
-    "request": "^2.88.2",
     "sitemapper": "^3.1.12"
   },
   "devDependencies": {

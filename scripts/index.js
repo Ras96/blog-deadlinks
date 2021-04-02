@@ -1,36 +1,23 @@
-const path = require('path');
-const fs = require('fs-extra');
 const cron = require('node-cron');
-const router = require('express').Router();
 const { findDeadLinks } = require('../src/func');
-const { postMessage } = require('../src/traqapi');
-
-let deadLinks = {};
-const localDeadLinks = JSON.parse(fs.readFileSync(path.join(__dirname, '../deadLinks.json')));
+const { postMessage, postFile } = require('../src/traqapi');
 
 const main = async () => {
   postMessage(`Started checking deadlinks.(${process.env.WORK_ENV})`);
   try {
-    deadLinks = await findDeadLinks();
+    const deadLinks = await findDeadLinks();
+    await postFile();
+    await postMessage(`Finished checking deadlinks. ${Object.keys(deadLinks).length} pages include deadlinks.`);
   } catch (err) {
-    postMessage(`Error Found!\n\n${err}`);
+    await postMessage(`Error Found!\n\n${err}`);
+    throw err;
   }
-  postMessage(`Finished checking deadlinks. ${Object.keys(deadLinks).length} pages include deadlinks.`);
 };
 
 //デプロイ時
 main();
 
-//1か月に1回実行
-cron.schedule('0 0 1 * *', () => {
+//半年に1回実行
+cron.schedule('0 0 1 */6 *', () => {
   main();
 });
-
-// GET 最新のリンク切れを取得
-router.get('/', (_req, res) => {
-  res.send(deadLinks);
-});
-router.get('/local', (_req, res) => {
-  res.send(localDeadLinks);
-});
-module.exports = router;
