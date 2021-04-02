@@ -11,7 +11,7 @@ const SITEMAP_PAGES_URL = 'https://trap.jp/sitemap-pages.xml';
 const SITEMAP_POSTS_URL = 'https://trap.jp/sitemap-posts.xml';
 const INTERVAL_MS = 5000;
 const sitemap = new Sitemapper();
-const semaphore = new Semaphore(5); //TODO: nr
+const semaphore = new Semaphore(5);
 
 const wait = async (times = 1) => {
   await new Promise((resolve) => {
