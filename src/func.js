@@ -5,11 +5,13 @@ const path = require('path');
 const fetch = require('node-fetch');
 const puppeteer = require('puppeteer');
 const Sitemapper = require('sitemapper');
+const { Semaphore } = require('await-semaphore');
 
 const SITEMAP_PAGES_URL = 'https://trap.jp/sitemap-pages.xml';
 const SITEMAP_POSTS_URL = 'https://trap.jp/sitemap-posts.xml';
-const INTERVAL_MS = 2000;
+const INTERVAL_MS = 5000;
 const sitemap = new Sitemapper();
+const semaphore = new Semaphore(5); //TODO: nr
 
 const wait = async (times = 1) => {
   await new Promise((resolve) => {
@@ -18,9 +20,12 @@ const wait = async (times = 1) => {
 };
 
 const fetchLink = async (link) => {
-  if (link === '' || !link.startsWith('http')) return null;
+  const release = await semaphore.acquire();
+  if (link === '' || !link.startsWith('http') || link.includes('/content/images')) {
+    release();
+    return null;
+  }
   try {
-    await wait(Math.random());
     const fetched = await fetch(link, {
       redirect: 'follow',
       follow: 20,
@@ -28,6 +33,7 @@ const fetchLink = async (link) => {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36',
       },
     });
+    release();
     if (fetched.status === 200) {
       return null;
     } else {
@@ -39,6 +45,7 @@ const fetchLink = async (link) => {
     }
   } catch (err) {
     console.log('    Error Page Found:', link, err.code);
+    release();
     return { url: link, error: `${err.name}: ${err.code}` };
   }
 };
