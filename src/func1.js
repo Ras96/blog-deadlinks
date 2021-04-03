@@ -15,12 +15,97 @@ const fetchSema = new Semaphore(5);
 const crawlSema = new Semaphore(3);
 const pages = [];
 let deadLinks = {};
-let i = 0;
 
-const wait = async (times = 1) => {
-  await new Promise((resolve) => {
-    setTimeout(resolve, INTERVAL_MS * times);
+exports.findDeadLinks = async () => {
+  // 1. initialize
+  deadLinks = {};
+  const { sites: pages_urls } = await sitemap.fetch(SITEMAP_PAGES_URL);
+  const { sites: posts_urls } = await sitemap.fetch(SITEMAP_POSTS_URL);
+  const urls = pages_urls.concat(posts_urls);
+  // 2. open a new browser and tabs;
+  const browser = await puppeteer.launch({
+    headless: false,
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
+  for (let i = 0; i < 3; i++) {
+    const page = await browser.newPage();
+    await page.setRequestInterception(true);
+    page.on('request', (r) => {
+      if (r.resourceType() !== 'document') {
+        return r.abort();
+      }
+      return r.continue();
+    });
+    pages.push({ page: page, using: false });
+  }
+  // 3. crawl links
+  console.log(`Start checking ${urls.length} pages...`);
+  urls.forEach((url) => crawlLink(url));
+  // 4. close the browser
+  await browser.close();
+  // 5. recheck errored links
+  for (const key of Object.keys(deadLinks)) {
+    const links = deadLinks[key].links;
+    if (links) {
+      const refetchedLinks = await Promise.all(
+        links.map(async (elm, index) => {
+          // 500番台 or 429
+          if (elm.error.match(/^(5|429)/)) {
+            wait(index);
+            console.log(`  Rechecking ${elm.url}`);
+            return await fetchLink(elm.url);
+          }
+          return elm;
+        })
+      );
+      const dl = refetchedLinks.filter((link) => link !== null);
+      if (dl.length > 0) {
+        deadLinks[key].links = dl;
+        continue;
+      }
+      delete deadLinks[key];
+    }
+  }
+  //6. output to json file
+  await fs.outputJSON(path.join(__dirname, `../deadLinks.json`), deadLinks, { spaces: '\t' });
+  console.log('Finished checking.');
+  return deadLinks;
+};
+
+const crawlLink = async (url) => {
+  const release = await crawlSema.acquire();
+  const i = usablePageIndex();
+  const page = pages[i].page;
+  console.log(`Checking ${url}`);
+  try {
+    await page.goto(url);
+  } catch (err) {
+    console.log(`  Navigation Error: ${url} ${err}`);
+    deadLinks[url] = { error: err };
+    release();
+    pages[i].using = false;
+    return;
+  }
+  const links = await page.$$eval('article a', (list) => list.map((elm) => elm.href));
+  const authors = await page.$$eval('.author-detail > a', (list) => list.map((elm) => elm.href));
+  const fetchedLinks = await Promise.all(links.map((link) => fetchLink(link)));
+  const dl = fetchedLinks.filter((link) => link !== null);
+  if (dl.length > 0) {
+    deadLinks[url] = { authors, links: dl };
+  }
+  release();
+  pages[i].using = false;
+  await wait();
+  return;
+};
+
+const usablePageIndex = () => {
+  for (let i = 0; i < 3; i++) {
+    if (pages[i].using == false) {
+      pages[i].using = true;
+      return i;
+    }
+  }
 };
 
 const fetchLink = async (link) => {
@@ -54,85 +139,8 @@ const fetchLink = async (link) => {
   }
 };
 
-const crawlLink = async (url) => {
-  const release = await crawlSema.acquire();
-  i = (i + 1) % 3;
-  const page = pages[i];
-  console.log(`Checking ${url}`);
-  try {
-    await page.goto(url);
-  } catch (err) {
-    console.log(`  Error Page Found: ${url} ${err.name}`);
-    deadLinks[url] = { error: err.name };
-    release();
-    return url;
-  }
-  await wait();
-  const links = await page.$$eval('article a', (list) => list.map((elm) => elm.href));
-  const authors = await page.$$eval('.author-detail > a', (list) => list.map((elm) => elm.href));
-  const fetchedLinks = await Promise.all(links.map((link) => fetchLink(link)));
-  const dl = fetchedLinks.filter((link) => link !== null);
-  if (dl.length > 0) {
-    deadLinks[url] = { authors, links: dl };
-  }
-  await wait();
-  return url;
-};
-
-exports.findDeadLinks = async () => {
-  deadLinks = {};
-  const { sites: pages_urls } = await sitemap.fetch(SITEMAP_PAGES_URL);
-  const { sites: posts_urls } = await sitemap.fetch(SITEMAP_POSTS_URL);
-  const urls = pages_urls.concat(posts_urls);
-
-  const browser = await puppeteer.launch({
-    slowMo: 100,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+const wait = async (times = 1) => {
+  await new Promise((resolve) => {
+    setTimeout(resolve, INTERVAL_MS * times);
   });
-  for (let i = 0; i < 4; i++) {
-    const page = await browser.newPage();
-    await page.setRequestInterception(true);
-    page.on('request', (r) => {
-      if (r.resourceType() !== 'document') {
-        return r.abort();
-      }
-      return r.continue();
-    });
-    pages.push(page);
-  }
-
-  console.log(`Start checking ${urls.length} pages...`);
-
-  // 展開したURL内のaタグを検索
-  urls.map((url) => crawlLink(url));
-
-  await browser.close();
-
-  // とりあえず一部のエラーをもう一回調べてみる
-  for (const key of Object.keys(deadLinks)) {
-    const links = deadLinks[key].links;
-    if (links) {
-      const refetchedLinks = await Promise.all(
-        links.map(async (elm, index) => {
-          // 500番台 or 429
-          if (elm.error.match(/^(5|429)/)) {
-            wait(index);
-            console.log(`  Rechecking ${elm.url}`);
-            return await fetchLink(elm.url);
-          }
-          return elm;
-        })
-      );
-      const dl = refetchedLinks.filter((link) => link !== null);
-      if (dl.length > 0) {
-        deadLinks[key].links = dl;
-        continue;
-      }
-      delete deadLinks[key];
-    }
-  }
-
-  await fs.outputJSON(path.join(__dirname, `../deadLinks.json`), deadLinks, { spaces: '\t' });
-  console.log('Finished checking.');
-  return deadLinks;
 };
