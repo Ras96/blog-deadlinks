@@ -2,13 +2,15 @@ name: CI
 
 on:
   schedule:
-    - cron: '10 2 * * *' # 毎月1日に実行
+    - cron: '25 2 * * *' # 毎月1日に実行
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
+      - name: checkout
+      - uses: actions/checkout@v2
       - name: build
         run: npm ci
       - name: entrypoint
